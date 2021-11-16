@@ -44,7 +44,7 @@ jobs:
       run: |
         mkdir -p $COMPOSER_HOME
         cd $COMPOSER_HOME
-        composer require drush/drush:8.1.* phpunit/phpunit:^8 torotil/upal:2.0.0-RC1
+        composer require drush/drush:8.3.* phpunit/phpunit:^8 torotil/upal:2.0.0-RC1
     - name: Bootstrap drupal
       run: |
         php -d sendmail_path=`which true` $COMPOSER_HOME/vendor/bin/drush.php --yes core-quick-drupal --core=drupal-7.82 --profile=testing --no-server --db-url=mysql://${{ env.DB_USER }}:${{ env.DB_PASSWORD }}@127.0.0.1:3306/${{ env.DB_DATABASE }} --root=$ROOT
