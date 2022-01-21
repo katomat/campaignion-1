@@ -21,11 +21,15 @@ class ContactCron {
    * @param bool $keep_mp_fields
    *   If TRUE the MP data is copied to the anonymized contacts, otherwise it is
    *   deleted.
+   * @param bool $exclude_opted_in
+   *   If TRUE contacts with any type of active opt-in are exempt from the data
+   *   expiry.
    */
-  public function __construct(int $time_limit, string $inactive_since_str, bool $keep_mp_fields = FALSE) {
+  public function __construct(int $time_limit, string $inactive_since_str, bool $keep_mp_fields = FALSE, bool $leave_opted_in = FALSE) {
     $this->timeLimit = $time_limit;
     $this->inactiveSinceStr = $inactive_since_str;
     $this->keepMpFields = $keep_mp_fields;
+    $this->excludeOptedIn = $exclude_opted_in;
     $this->entityController = entity_get_controller('redhen_contact');
   }
 
@@ -98,7 +102,32 @@ SQL;
    * Load inactive contacts from the database.
    */
   protected function loadInactiveContacts(int $inactive_since, int $last_id = 0, int $limit = 20) {
-    $sql = <<<SQL
+
+    if ($this->excludeOptedIn) {
+      $sql = <<<SQL
+SELECT c.contact_id
+FROM redhen_contact c
+  INNER JOIN field_data_redhen_contact_email AS ce ON ce.entity_type='redhen_contact' AND ce.entity_id=contact_id
+  LEFT OUTER JOIN (
+    campaignion_activity ca
+    INNER JOIN campaignion_activity_webform USING(activity_id)
+    ) ON ca.contact_id=c.contact_id AND ca.created>:time
+    LEFT OUTER JOIN field_data_field_opt_in_post AS post ON post.entity_type='redhen_contact' AND post.entity_id=c.contact_id AND post.field_opt_in_post_value=1
+  LEFT OUTER JOIN field_data_field_opt_in_phone AS phone ON phone.entity_type='redhen_contact' AND phone.entity_id=c.contact_id AND phone.field_opt_in_phone_value=1
+  LEFT OUTER JOIN campaignion_newsletters_subscriptions AS nl ON redhen_contact_email_value=email
+WHERE redhen_contact_email_value NOT LIKE '%@deleted'
+AND ca.activity_id IS NULL
+AND post.field_opt_in_post_value IS NULL
+AND phone.field_opt_in_phone_value IS NULL
+AND email IS NULL
+AND c.updated < :time
+AND c.contact_id > :last_id
+ORDER BY c.contact_id
+LIMIT $limit;
+SQL;
+    }
+    else {
+      $sql = <<<SQL
 SELECT c.contact_id
 FROM redhen_contact c
   INNER JOIN field_data_redhen_contact_email AS ce ON ce.entity_type='redhen_contact' AND ce.entity_id=contact_id
@@ -113,6 +142,7 @@ AND c.contact_id > :last_id
 ORDER BY c.contact_id
 LIMIT $limit;
 SQL;
+    }
     $params = [':last_id' => $last_id, ':time' => $inactive_since];
     if ($ids = db_query($sql, $params)->fetchCol()) {
       return entity_load('redhen_contact', $ids, [], TRUE);

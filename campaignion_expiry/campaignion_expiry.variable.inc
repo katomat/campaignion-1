@@ -37,5 +37,12 @@ function campaignion_expiry_variable_info($options) {
     'default' => TRUE,
     'localize' => FALSE,
   ];
+  $v['campaignion_expiry_contact_exclude_opted_in_contacts'] = [
+    'title' => t('Contact expiry: Exclude opted in contacts'),
+    'description' => t('A flag that decides whether opted in contacts are exempt from contact anonymization.'),
+    'type' => 'boolean',
+    'default' => FALSE,
+    'localize' => FALSE,
+  ];
   return $v;
 }

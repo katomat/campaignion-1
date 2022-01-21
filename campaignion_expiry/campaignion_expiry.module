@@ -33,6 +33,7 @@ function campaignion_expiry_little_helpers_services() {
       '!campaignion_expiry_cron_time_limit',
       '!campaignion_expiry_contact_time_frame',
       '!campaignion_expiry_contact_keep_mp_data',
+      '!campaignion_expiry_contact_exclude_opted_in_contacts',
     ],
   ];
   return $info;
